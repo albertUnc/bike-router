@@ -1,0 +1,730 @@
+:root {
+  --bg: #f4f5f7;
+  --fg: #1b1f23;
+  --muted: #5f6b76;
+  --line: #d9dee3;
+  --accent: #1971c2;
+  --surface: #ffffff;
+  --danger: #c92a2a;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1e22;
+    --fg: #e8eaed;
+    --muted: #98a2ad;
+    --line: #363b41;
+    --accent: #4dabf7;
+    --surface: #23272c;
+    --danger: #ff8787;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Elements that set their own display (flex, grid) would otherwise ignore the hidden attribute. */
+[hidden] { display: none !important; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  overscroll-behavior: none;
+}
+
+/* Map fills the space above the details panel. */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+#map-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* Search bar floats over the map. */
+.searchbar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 10px;
+  right: 10px;
+  max-width: 520px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px 2px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.searchbar input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 16px; /* avoids the zoom-on-focus behaviour on iOS */
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-btn:hover { color: var(--accent); }
+
+.results {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 62px);
+  left: 10px;
+  right: 10px;
+  max-width: 520px;
+  max-height: 40dvh;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow: auto;
+  z-index: 3;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.results li { display: flex; align-items: center; }
+
+.results .add-place {
+  flex: none;
+  width: 40px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.results button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.results button:hover { background: var(--line); }
+.results .none { padding: 10px; color: var(--muted); }
+
+/* Details panel below the map. */
+#panel {
+  flex: 0 0 auto;
+  max-height: 48vh;
+  max-height: 48dvh;
+  overflow: auto;
+  padding: 0 14px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+#panel.collapsed #panel-body { display: none; }
+
+/* A height chosen by dragging the handle replaces the automatic one; collapsing always wins. */
+#panel.sized { height: var(--panel-h); max-height: 80vh; max-height: 80dvh; }
+#panel.collapsed { height: auto; }
+
+.handle {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 28px;
+  border: 0;
+  background: none;
+  cursor: ns-resize;
+  touch-action: none; /* a vertical drag on the handle resizes the panel instead of scrolling the page */
+}
+
+.handle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  width: 40px;
+  height: 4px;
+  margin-left: -20px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.handle:hover::after { background: var(--muted); }
+
+.stats { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.stats div { display: flex; flex-direction: column; }
+
+.stats .label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stats strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.status.error { color: var(--danger); }
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.surface {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rider-row label { color: var(--muted); }
+
+.rider-row select {
+  font-size: 16px;
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+}
+
+/* Speed colour key over the map, using the same stops as the route line. */
+.legend {
+  position: absolute;
+  left: 10px;
+  bottom: 30px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.legend i {
+  display: block;
+  width: 70px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #c92a2a, #f76707 21%, #fab005 45%, #82c91e 70%, #2b8a3e);
+}
+
+.btn.danger { margin-right: auto; color: var(--danger); }
+
+/* Stops list. */
+.stops { margin-top: 12px; }
+.stops summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.stops-list { list-style: none; margin: 4px 0 8px; padding: 0; }
+.stops > .btn { margin-top: 4px; }
+
+.stop {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 0;
+  border-radius: 8px;
+}
+
+/* While reordering, the dragged row floats above the list and the others slide aside. */
+.stop.dragging {
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: none;
+}
+
+.stop.dragging.settling { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease; }
+.stops-list.reordering .stop:not(.dragging) { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stop.dragging.settling,
+  .stops-list.reordering .stop:not(.dragging) { transition: none; }
+}
+
+.stop-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.stop-btn:hover:not(:disabled) { color: var(--accent); }
+.stop-btn:disabled { opacity: 0.3; cursor: default; }
+.stop-btn.danger:hover { color: var(--danger); }
+.stop-btn.active { color: #fff; background: var(--accent); }
+
+.stop-handle {
+  width: 22px;
+  cursor: grab;
+  touch-action: none; /* a finger on the handle drags the row instead of scrolling the panel */
+}
+
+.stop-badge {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #1971c2;
+  color: #fff;
+  font: 700 12px system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.stop-badge.start { background: #2f9e44; }
+.stop-badge.end { background: #e03131; }
+
+.stop-name {
+  font-size: 16px;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-overflow: ellipsis;
+}
+
+.stop-name:hover, .stop-name:focus { border-color: var(--line); outline: 0; }
+.stop-name::placeholder { color: var(--fg); opacity: 0.85; }
+
+/* Connector between two stops: leg length on the left, "add a stop here" on the right. */
+.leg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  margin-left: 35px;
+  padding-left: 14px;
+  border-left: 2px dotted var(--line);
+}
+
+.leg-info { font-size: 12px; color: var(--muted); }
+
+.btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:hover { border-color: var(--accent); }
+
+.btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Elevation chart. */
+.chart {
+  position: relative;
+  height: 150px;
+  margin-top: 8px;
+}
+
+.chart svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+.chart.empty svg { display: none; }
+
+.chart.empty::after {
+  content: "Add two points on the map to see the elevation profile";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .tick { fill: var(--muted); font-size: 10px; }
+.chart .area { fill: var(--accent); opacity: 0.18; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.chart .cursor { stroke: var(--fg); stroke-width: 1; opacity: 0.55; }
+.chart .dot { fill: var(--accent); stroke: #fff; stroke-width: 2; }
+
+.chart-tip {
+  position: absolute;
+  top: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* Map markers. MapLibre positions them with an inline transform, so no transform here. */
+.wp-marker {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #1971c2;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font: 700 12px system-ui, sans-serif;
+  cursor: grab;
+}
+
+.wp-marker.start { background: #2f9e44; }
+.wp-marker.end { background: #e03131; }
+
+.cursor-dot {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #f59f00;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* The map marker menu. MapLibre draws popups on a light background in both colour schemes. */
+.wp-menu { display: flex; flex-direction: column; min-width: 130px; }
+.wp-menu-title { padding: 4px 10px 6px; font: 700 13px system-ui, sans-serif; color: #1b1f23; overflow-wrap: anywhere; }
+
+.popup-btn {
+  padding: 9px 10px;
+  border: 0;
+  border-top: 1px solid #e3e6ea;
+  background: none;
+  color: #1971c2;
+  font: 600 14px system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.popup-btn.danger { color: #c92a2a; }
+
+/* Settings dialog. */
+dialog {
+  width: min(92vw, 420px);
+  padding: 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+}
+
+dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+dialog h2 { margin: 0 0 12px; font-size: 18px; }
+dialog label { display: block; margin-bottom: 12px; font-weight: 600; }
+
+dialog input,
+dialog select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 16px;
+}
+
+dialog small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+dialog .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+dialog .note { color: var(--muted); font-size: 13px; }
+dialog a { color: var(--accent); }
+
+dialog .help { margin: -4px 0 14px; font-size: 13px; color: var(--muted); }
+dialog .help summary { cursor: pointer; color: var(--accent); }
+dialog .help ol { margin: 6px 0; padding-left: 20px; }
+dialog .help p { margin: 6px 0 0; }
+
+#rider-dialog { max-height: 92dvh; overflow: auto; }
+#rider-dialog .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); column-gap: 12px; }
+#rider-dialog label { font-size: 13px; }
+dialog .hint { margin-top: 0; }
+
+dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+@media (min-width: 800px) {
+  #panel { padding: 0 20px 14px; }
+  .chart { height: 190px; }
+  .stats strong { font-size: 22px; }
+}
+
+/* Long dialogs scroll instead of running off small screens. */
+dialog { max-height: 92dvh; overflow: auto; }
+dialog p.note { margin: 0 0 12px; }
+
+dialog label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+dialog label.check input { display: inline-block; width: auto; margin: 0; }
+
+dialog .backup {
+  margin: 14px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+dialog .backup .row { margin: 6px 0; }
+dialog .backup .note { display: block; margin-top: 4px; }
+
+/* Saved routes list. */
+.routes-list { list-style: none; margin: 0 0 4px; padding: 0; }
+
+.routes-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.route-info { flex: 1 1 180px; min-width: 0; }
+.route-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.route-meta { display: block; font-size: 12px; color: var(--muted); }
+.route-actions { display: flex; gap: 6px; }
+.route-actions .btn { min-height: 34px; padding: 4px 10px; }
+
+/* Loop candidates, shown above the chart while a choice is pending. */
+.candidates {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.candidates-head { margin-bottom: 4px; }
+.candidates-head .note { color: var(--muted); font-size: 12px; }
+.candidates-list { list-style: none; margin: 0; padding: 0; }
+
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 4px 0;
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.candidate.selected { border-color: var(--accent); }
+
+.candidate-dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.candidate-main { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.candidate-sub { display: block; font-size: 12px; color: var(--muted); }
+
+/* ---- Touch devices and cross-browser behaviour ---- */
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* No 300 ms double-tap-zoom delay on controls, and no grey flash when tapping them. */
+button, select, summary, label, input { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.handle, .stop-handle { touch-action: none; }
+
+/* Things that are pressed and dragged must not start text selection or a callout on long press. */
+.wp-marker, .cursor-dot, .stop-badge, .stop-btn, .stop-handle, .handle, .legend, .candidate {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Safari draws its own styling on search fields and form buttons. */
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+button, .btn { -webkit-appearance: none; appearance: none; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stop-name:focus-visible, .searchbar input:focus-visible { outline: 0; }
+
+/* Notches and rounded corners in landscape. */
+.searchbar { left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); }
+#panel {
+  padding-left: max(14px, env(safe-area-inset-left, 0px));
+  padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
+.legend { left: max(10px, env(safe-area-inset-left, 0px)); }
+
+/* Bigger touch targets on phones and tablets. */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .stop-btn { width: 38px; height: 38px; }
+  .stop-handle { width: 26px; }
+  .stop-name { height: 38px; }
+  .rider-row select { min-height: 44px; }
+  .route-actions .btn { min-height: 40px; }
+  .icon-btn { width: 46px; height: 46px; }
+}
+
+/* Short screens (phone in landscape): give the map more room. */
+@media (max-height: 500px) {
+  #panel { max-height: 55vh; max-height: 55dvh; }
+  .chart { height: 110px; }
+}
+
+/* Ride history dialog. */
+#rides-dialog { width: min(94vw, 560px); }
+#rides-dialog h3 { margin: 16px 0 6px; font-size: 16px; }
+#rides-dialog .routes-list { margin-top: 8px; }
+#rides-dialog .row { margin-top: 4px; }
+
+.analysis { margin-top: 8px; padding-top: 4px; border-top: 1px solid var(--line); }
+
+.suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.suggestion-text { flex: 1 1 220px; min-width: 0; }
+.suggestion-text strong { display: block; }
+.suggestion-detail { display: block; font-size: 13px; color: var(--muted); }
+.suggestion-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.suggestion .btn { min-height: 36px; padding: 4px 12px; }
+
+.band-table { flex: 1 1 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.band-table td { padding: 3px 6px; border-top: 1px solid var(--line); }
+.band-table td:nth-child(2) { text-align: right; font-weight: 600; }
+.band-table .band-km { text-align: right; color: var(--muted); }
+
+/* Narrow phones: slightly smaller row buttons so the stop name keeps room. */
+@media (max-width: 430px) {
+  .stop { gap: 2px; }
+  .stop-btn { width: 32px; }
+  .stop-handle { width: 22px; }
+}
+
+/* Saved places and the Strava dialog. */
+#places-dialog .routes-list { margin-top: 8px; }
+dialog code { font-size: 12px; overflow-wrap: anywhere; }

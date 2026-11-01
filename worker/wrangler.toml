@@ -1,0 +1,10 @@
+name = "bike-router-strava"
+main = "strava-worker.js"
+compatibility_date = "2026-01-01"
+
+# Plain settings. The client secret is NOT put here: store it with
+#   npx wrangler secret put STRAVA_CLIENT_SECRET
+[vars]
+STRAVA_CLIENT_ID = "paste-your-client-id-here"
+# Addresses the app runs at, comma separated, no trailing slash.
+ALLOWED_ORIGINS = "http://localhost:8000"

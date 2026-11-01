@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bike Router</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="map-wrap">
+      <div id="map"></div>
+
+      <form id="search-form" class="searchbar" role="search" autocomplete="off">
+        <input id="search-input" type="search" placeholder="Search a place in Romania" aria-label="Search a place">
+        <button type="submit" class="icon-btn" aria-label="Search">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        </button>
+        <button type="button" id="places-btn" class="icon-btn" aria-label="Saved places">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
+        </button>
+        <button type="button" id="settings-btn" class="icon-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M20 7h-2M4 17h2M20 17H10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+        </button>
+      </form>
+      <ul id="search-results" class="results" hidden></ul>
+
+      <div id="legend" class="legend" hidden aria-label="Route colour shows estimated speed">
+        <span id="legend-low">5</span><i></i><span id="legend-high">38+</span>
+      </div>
+    </div>
+
+    <section id="panel" aria-label="Route details">
+      <button type="button" id="panel-toggle" class="handle" aria-expanded="true" aria-label="Show or hide details"></button>
+
+      <div class="stats">
+        <div><span class="label">Distance</span><strong id="stat-distance">–</strong></div>
+        <div><span class="label">Time</span><strong id="stat-time">–</strong></div>
+        <div><span class="label">Avg speed</span><strong id="stat-speed">–</strong></div>
+        <div><span class="label">Ascent</span><strong id="stat-ascent">–</strong></div>
+        <div><span class="label">Descent</span><strong id="stat-descent">–</strong></div>
+      </div>
+      <p id="status" class="status" role="status"></p>
+
+      <div id="panel-body">
+        <div id="candidates" class="candidates" hidden>
+          <div class="candidates-head"><strong>Loop candidates</strong> <span id="candidates-note" class="note"></span></div>
+          <ol id="candidates-list" class="candidates-list"></ol>
+          <div class="actions">
+            <button type="button" id="btn-use-loop" class="btn primary">Use this loop</button>
+            <button type="button" id="btn-discard-loops" class="btn">Discard</button>
+          </div>
+        </div>
+        <div id="chart" class="chart"></div>
+        <p id="surface-summary" class="surface"></p>
+        <p id="estimate-note" class="surface"></p>
+        <div class="rider-row">
+          <label for="rider-select">Rider</label>
+          <select id="rider-select"></select>
+          <button type="button" id="btn-rider-edit" class="btn">Edit</button>
+          <button type="button" id="btn-rider-new" class="btn">New</button>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-undo" class="btn">Remove last</button>
+          <button type="button" id="btn-reverse" class="btn">Reverse</button>
+          <button type="button" id="btn-fit" class="btn">Fit route</button>
+          <button type="button" id="btn-clear" class="btn">Clear</button>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-save" class="btn">Save…</button>
+          <button type="button" id="btn-routes" class="btn">Saved routes</button>
+          <button type="button" id="btn-gpx" class="btn">Export GPX</button>
+          <button type="button" id="btn-loop" class="btn">Loop…</button>
+          <button type="button" id="btn-rides" class="btn">Rides…</button>
+        </div>
+
+        <details id="stops-details" class="stops">
+          <summary>Stops <span id="stops-count"></span></summary>
+          <ol id="stops-list" class="stops-list"></ol>
+          <button type="button" id="stops-return" class="btn">Return to start</button>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="save-dialog">
+    <form method="dialog">
+      <h2>Save route</h2>
+      <label>Name
+        <input id="save-name" type="text" maxlength="80" required>
+      </label>
+      <menu>
+        <button type="button" data-close="cancel" class="btn">Cancel</button>
+        <button type="button" value="new" data-close="new" id="save-new" class="btn">Save as new</button>
+        <button value="update" id="save-update" class="btn primary">Update</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="routes-dialog">
+    <h2>Saved routes</h2>
+    <p id="routes-empty" class="note" hidden>No saved routes yet. Plan a route and press Save.</p>
+    <ul id="routes-list" class="routes-list"></ul>
+    <form method="dialog">
+      <menu><button value="close" class="btn">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="name-dialog">
+    <form method="dialog">
+      <h2 id="name-title">Name</h2>
+      <label>Name
+        <input id="name-input" type="text" maxlength="60" autocomplete="off">
+      </label>
+      <menu>
+        <button type="button" data-close="cancel" class="btn">Cancel</button>
+        <button value="ok" id="name-ok" class="btn primary">OK</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="places-dialog">
+    <h2>Saved places</h2>
+    <p class="note">Save a stop with the bookmark button in the Stops list, or from the menu you get by tapping a stop on the map. Add a saved place to your route here.</p>
+    <p id="places-empty" class="note" hidden>No saved places yet.</p>
+    <ul id="places-list" class="routes-list"></ul>
+    <form method="dialog">
+      <menu><button value="close" class="btn">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="strava-dialog">
+    <form method="dialog">
+      <h2>Strava</h2>
+      <p class="note">Log in to Strava once and your rides are imported automatically. Strava's login involves a secret key that cannot live in a web page, so it needs a small free helper (a Cloudflare Worker) that you set up once.</p>
+      <details class="help">
+        <summary>Setup guide (about 10 minutes, once)</summary>
+        <ol>
+          <li>Create an app at <a href="https://www.strava.com/settings/api" target="_blank" rel="noopener">strava.com/settings/api</a>. Set <strong>Authorization Callback Domain</strong> to <code id="strava-domain"></code>. Note its Client ID and Client Secret.</li>
+          <li>Deploy the helper by following <code>worker/README.md</code> in the project folder: a free Cloudflare account, paste <code>worker/strava-worker.js</code>, and add your Client ID, Client Secret and this app's address as settings.</li>
+          <li>Paste the helper's address and the Client ID below, then press <strong>Connect</strong>.</li>
+        </ol>
+        <p>This app's address, for the helper's ALLOWED_ORIGINS setting: <code id="strava-origin"></code></p>
+      </details>
+      <label>Helper address
+        <input id="strava-worker" type="url" placeholder="https://bike-router-strava.yourname.workers.dev" autocomplete="off" spellcheck="false">
+      </label>
+      <label>Strava Client ID
+        <input id="strava-client-id" type="text" inputmode="numeric" autocomplete="off">
+      </label>
+      <label class="check"><input id="strava-auto" type="checkbox"> Import new rides automatically when the app opens</label>
+      <label>First import reaches back
+        <select id="strava-window">
+          <option value="30">30 days</option>
+          <option value="90">90 days</option>
+          <option value="365">1 year</option>
+          <option value="0">All time</option>
+        </select>
+      </label>
+      <p id="strava-status" class="note" role="status"></p>
+      <menu>
+        <button type="button" data-close="cancel" class="btn">Close</button>
+        <button type="button" id="strava-disconnect" class="btn danger" hidden>Disconnect</button>
+        <button type="button" id="strava-sync" class="btn" hidden>Sync now</button>
+        <button value="connect" id="strava-connect" class="btn primary">Connect</button>
+        <button type="button" value="save" id="strava-save" class="btn primary" hidden>Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="rides-dialog">
+    <h2>Ride history</h2>
+    <p class="note">Import rides you have done (.gpx or .fit files, also gzipped as .gpx.gz and .fit.gz, for example exported from Strava, Garmin or Wahoo), or connect Strava to import them automatically. They are used to estimate your FTP and to calibrate the speed model to how you really ride. The files stay in this browser.</p>
+    <div class="row">
+      <button type="button" id="btn-import-rides" class="btn primary">Import rides…</button>
+      <button type="button" id="btn-strava" class="btn">Strava…</button>
+      <button type="button" id="btn-sync-strava" class="btn" hidden>Sync Strava</button>
+      <input type="file" id="rides-file" multiple hidden>
+    </div>
+    <p id="rides-note" class="note" role="status"></p>
+    <p id="rides-empty" class="note" hidden>No rides imported yet.</p>
+    <ul id="rides-list" class="routes-list"></ul>
+    <section id="analysis" class="analysis" hidden>
+      <h3>What your rides say about <span id="analysis-rider"></span></h3>
+      <div id="analysis-body"></div>
+    </section>
+    <form method="dialog">
+      <menu><button value="close" class="btn">Close</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="loop-dialog">
+    <form method="dialog">
+      <h2>Loop from your start</h2>
+      <p class="note">The loop starts and ends at <strong id="loop-start">your first stop</strong>. You get up to three candidates to compare on the map. Choosing one replaces your current stops with stops along that loop, which you can still drag.</p>
+      <label>Target
+        <select id="loop-kind">
+          <option value="distance">Distance</option>
+          <option value="time">Ride time</option>
+        </select>
+      </label>
+      <label><span id="loop-value-label">Length</span>
+        <input id="loop-value" type="number" min="0.1" step="any" inputmode="decimal" required>
+      </label>
+      <label>Hills
+        <select id="loop-elevation">
+          <option value="any">No preference</option>
+          <option value="flat">Flat</option>
+          <option value="rolling">Rolling</option>
+          <option value="hilly">Hilly</option>
+        </select>
+      </label>
+      <label class="check"><input id="loop-paved" type="checkbox"> Prefer paved and quieter roads</label>
+      <label class="check"><input id="loop-outback" type="checkbox"> Allow out-and-back</label>
+      <small>Each search sends about 8 to 12 routing requests (the free plan has a daily limit).</small>
+      <menu>
+        <button type="button" data-close="cancel" class="btn">Cancel</button>
+        <button value="generate" class="btn primary">Generate</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="rider-dialog">
+    <form method="dialog">
+      <h2>Rider profile</h2>
+      <label>Name
+        <input id="rider-name" type="text" maxlength="40" required>
+      </label>
+      <div id="rider-fields" class="fields"></div>
+      <small class="hint">Sustainable power for a ride of h hours is FTP × (1 h value) × h<sup>−fade</sup>, limited to 50–105 % of FTP.</small>
+      <menu>
+        <button type="button" data-close="delete" id="rider-delete" class="btn danger">Delete</button>
+        <button type="button" data-close="cancel" class="btn">Cancel</button>
+        <button value="save" class="btn primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <label>OpenRouteService API key
+        <input id="set-key" type="password" autocomplete="off" spellcheck="false">
+        <small>Free key from HeiGIT, the organisation behind openrouteservice. Stored only in this browser.</small>
+      </label>
+      <details class="help">
+        <summary>How do I get a key?</summary>
+        <ol>
+          <li>Go to <a href="https://account.heigit.org/" target="_blank" rel="noopener">account.heigit.org</a> and sign up (free; email and password).</li>
+          <li>Confirm your email, log in and open the <strong>Dashboard</strong>.</li>
+          <li>Copy your API key (the whole thing, it can be very long). If none is shown, create one there.</li>
+          <li>Paste it in the box above and press <strong>Save</strong>.</li>
+        </ol>
+        <p>If the openrouteservice.org website is down, the Signup and Dashboard links are also on
+          <a href="https://api.heigit.org/" target="_blank" rel="noopener">api.heigit.org</a>.
+          The free plan allows 2000 route requests per day and 40 per minute.</p>
+      </details>
+      <label>Route type (which roads to prefer)
+        <select id="set-profile"></select>
+        <small>Changes the path the router picks. Your weight, power and bike are set per rider in the panel.</small>
+      </label>
+      <label>Units
+        <select id="set-units">
+          <option value="metric">Kilometres / metres</option>
+          <option value="imperial">Miles / feet</option>
+        </select>
+      </label>
+      <div class="row">
+        <button type="button" id="set-default-view" class="btn">Use current map view as default</button>
+        <span id="set-default-note" class="note"></span>
+      </div>
+      <div class="backup">
+        <strong>Backup</strong>
+        <div class="row">
+          <button type="button" id="btn-export-backup" class="btn">Export backup</button>
+          <button type="button" id="btn-import-backup" class="btn">Import backup…</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+        </div>
+        <small>Riders, saved routes and settings as one JSON file. The API key is never included.</small>
+        <span id="backup-note" class="note" role="status"></span>
+      </div>
+      <menu>
+        <button type="button" data-close="cancel" class="btn">Cancel</button>
+        <button value="save" class="btn primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

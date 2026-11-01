@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solver checks</title>
+  <style>
+    body { font: 15px/1.4 system-ui, sans-serif; margin: 16px; max-width: 900px; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { padding: 6px 10px; border-bottom: 1px solid #ccc; text-align: left; }
+    .pass { color: #2b8a3e; font-weight: 600; }
+    .fail { color: #c92a2a; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Solver and estimator checks</h1>
+  <p id="summary"></p>
+  <table id="results"><thead><tr><th>Result</th><th>Check</th><th>Value</th></tr></thead><tbody></tbody></table>
+  <script type="module">
+    import { runChecks } from './checks.js';
+    import { runRouteChecks } from './checks-routes.js';
+    import { runRideChecks } from './checks-rides.js';
+    import { runStravaChecks } from './checks-strava.js';
+
+    const results = [...runChecks(), ...(await runRouteChecks()), ...runRideChecks(), ...(await runStravaChecks())];
+    const body = document.querySelector('#results tbody');
+    for (const r of results) {
+      const row = body.insertRow();
+      const status = row.insertCell();
+      status.textContent = r.pass ? 'PASS' : 'FAIL';
+      status.className = r.pass ? 'pass' : 'fail';
+      row.insertCell().textContent = r.name;
+      row.insertCell().textContent = r.detail;
+    }
+    const failed = results.filter((r) => !r.pass).length;
+    document.getElementById('summary').textContent = `${results.length - failed} of ${results.length} checks passed`;
+  </script>
+</body>
+</html>
